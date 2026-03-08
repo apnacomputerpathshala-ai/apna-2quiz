@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apna Computer Pathshala - Mega Test</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        :root { --primary: #1a237e; --accent: #ffd600; --bg: #f4f7f6; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; text-align: center; }
+        
+        .header-section { background: var(--primary); color: white; padding: 30px 10px 25px; border-bottom: 5px solid var(--accent); }
+        .logo-circle { height: 80px; width: 80px; background-image: url('https://cdn-icons-png.flaticon.com/512/3067/3067451.png'); background-size: 70%; background-position: center; background-repeat: no-repeat; border-radius: 50%; margin: 0 auto 15px; border: 3px solid white; background-color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .container { max-width: 500px; margin: -20px auto 30px; background: white; border-radius: 15px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); position: relative; z-index: 10; text-align: left; }
+        
+        input { width: 92%; padding: 15px; border-radius: 10px; border: 2px solid #ddd; font-size: 16px; margin-bottom: 20px; }
+        .btn { width: 100%; background: var(--primary); color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 17px; }
+        
+        .option { display: block; padding: 15px; margin: 12px 0; border: 1.5px solid #eee; border-radius: 12px; cursor: pointer; background: #fff; }
+        .option.selected { background: #f0f2ff; border-color: var(--primary); font-weight: bold; }
+        
+        /* Palette Styling */
+        .p-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 15px; }
+        .p-btn { width: 35px; height: 35px; border: 1px solid #ccc; background: white; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .p-btn.done { background: #4caf50; color: white; border: none; } /* Answered */
+        .p-btn.skipped { background: #f44336; color: white; border: none; } /* Visited but Not Answered */
+        .p-btn.active { border: 2px solid var(--primary); box-shadow: 0 0 5px var(--primary); }
+
+        .ans-item { padding: 15px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+        .correct { color: green; font-weight: bold; }
+        .wrong { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="header-section">
+    <div class="logo-circle"></div>
+    <h1>APNA COMPUTER PATHSHALA</h1>
+    <p>Mega Mock Test: 25 Questions</p>
+</div>
+
+<div class="container" id="box">
+    <div id="intro" style="text-align: center;">
+        <h2 style="color: var(--primary);">स्वागत है!</h2>
+        <div style="background: #fff9c4; padding: 15px; border-radius: 10px; border-left: 5px solid #fbc02d; margin-bottom: 20px; font-size: 14px; text-align: left;">
+            <b>📝 निर्देश:</b><br>
+            • समय: <b>15 मिनट</b> | प्रश्न: <b>25</b><br>
+            • <span style="color:red;">लाल रंग:</span> स्किप किया गया सवाल<br>
+            • <span style="color:green;">हरा रंग:</span> हल किया गया सवाल
+        </div>
+        <input type="text" id="s-name" placeholder="अपना नाम यहाँ लिखें">
+        <button class="btn" onclick="start()">स्टार्ट टेस्ट</button>
+    </div>
+
+    <div id="quiz" style="display:none;">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:15px;">
+            <span id="q-count">सवाल 1/25</span>
+            <span id="timer" style="color:red;">⏱ 15:00</span>
+        </div>
+        <p id="q-text" style="font-size:18px; font-weight:600;"></p>
+        <div id="options-div"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn" style="background:#e0e0e0; color:#333; flex:1;" onclick="prev()">Previous</button>
+            <button class="btn" style="flex:1;" onclick="next()">Save & Next</button>
+        </div>
+        <div style="margin-top:30px; padding:15px; background:#f9f9f9; border-radius:10px;">
+            <p style="font-weight:bold; margin:0; color:#666; font-size:12px;">QUESTION PALETTE</p>
+            <div class="p-grid" id="palette"></div>
+            <button class="btn" style="background:#d32f2f; margin-top:20px;" onclick="finish()">Final Submit</button>
+        </div>
+    </div>
+
+    <div id="result-box" style="display:none; text-align: center;">
+        <h2 style="color:#4caf50;">टेस्ट सबमिट हो गया! ✅</h2>
+        <div id="score-display" style="font-size:35px; font-weight:bold; color:var(--primary); margin:15px 0;"></div>
+        <p id="time-taken-display" style="font-weight:bold;"></p>
+        <button class="btn" style="background:#4caf50; margin-bottom:10px;" onclick="showAnswers()">Check Answer Key</button>
+        <button class="btn" style="background:#333;" onclick="location.reload()">दोबारा टेस्ट दें</button>
+        <div id="answer-key" style="display:none; margin-top:20px; text-align: left; max-height: 300px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { databaseURL: "https://apnapathshala-73-default-rtdb.firebaseio.com" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const questions = [
+        { q: "Operating System का मुख्य कार्य क्या है?", a: ["म्यूजिक चलाना", "इंटरनेट से कनेक्ट करना", "Hardware और Software को Manage करना", "स्क्रीन साफ़ करना"], c: 2 },
+        { q: "Windows Desktop पर Applications के Shortcut कहाँ मिलते हैं?", a: ["Task Manager", "Desktop Icons", "Control Panel", "File Explorer"], c: 1 },
+        { q: "कौन सा Menu Programs और System Settings तक पहुँच प्रदान करता है?", a: ["Taskbar", "Start Menu", "Recycle Bin", "Run Command"], c: 1 },
+        { q: "Taskbar का मुख्य कार्य क्या है?", a: ["Wallpaper दिखाना", "Printer Settings", "खुले हुए Apps और Notifications दिखाना", "केवल Antivirus"], c: 2 },
+        { q: "Windows में Personalisation Settings कैसे खोलते हैं?", a: ["BIOS से", "Recycle Bin से", "Desktop पर Right-Click -> Personalise", "Word में टाइप करके"], c: 2 },
+        { q: "कौन सा Mode आँखों के तनाव को कम करता है?", a: ["Sleep Mode", "Safe Mode", "Dark Mode", "High Contrast Mode"], c: 2 },
+        { q: "Screen Resolution बदलने से क्या प्रभावित होता है?", a: ["इंटरनेट स्पीड", "साउंड", "डिस्प्ले की Sharpness", "कीबोर्ड"], c: 2 },
+        { q: "कौन सी Setting, Text और Apps का आकार बढ़ाती है बिना Resolution बदले?", a: ["Refresh Rate", "Brightness", "Scaling", "DPI Reset"], c: 2 },
+        { q: "GUI का मतलब क्या होता है?", a: ["Graphics User Interaction", "Graphical User Interface", "General User Instrument", "Graphic Utility Icon"], c: 1 },
+        { q: "Desktop Customisation से उपयोगकर्ता क्या बदल सकते हैं?", a: ["केवल पासवर्ड", "कंप्यूटर का रूप (Look)", "इंटरनेट का रिचार्ज", "RAM की क्षमता"], c: 1 },
+        { q: "विंडोज़ में वॉलपेपर बदलने के लिए किस सेटिंग में जाना होता है?", a: ["System", "Personalisation", "Apps", "Privacy"], c: 1 },
+        { q: "हाई कंट्रास्ट मोड (High Contrast Mode) किन लोगों के लिए सहायक है?", a: ["गेमर्स के लिए", "ऑफिस वर्कर के लिए", "Vision (दृष्टि) में परेशानी वाले उपयोगकर्ताओं के लिए", "म्यूजिक सुनने वालों के लिए"], c: 2 },
+        { q: "डार्क मोड (Dark Mode) का मुख्य लाभ क्या है?", a: ["स्पीड बढ़ाना", "कम रोशनी में आँखों को आराम देना", "इंटरनेट बचाना", "RAM बढ़ाना"], c: 1 },
+        { q: "कस्टम थीम (Custom Theme) को सेव करने से क्या फायदा है?", a: ["कंप्यूटर नया हो जाता है", "बाद में दोबारा इस्तेमाल किया जा सकता है", "एंटीवायरस हट जाता है", "मेमोरी खाली होती है"], c: 1 },
+        { q: "स्क्रीन रेजोल्यूशन (Resolution) क्या दर्शाता है?", a: ["स्क्रीन की लंबाई", "स्क्रीन की ब्राइटनेस", "स्क्रीन की Sharpness", "स्क्रीन का वजन"], c: 2 },
+        { q: "ब्राइटनेस (Brightness) को कहाँ से एडजस्ट किया जा सकता है?", a: ["Wallpaper से", "Slider को मूव करके", "कीबोर्ड की Space Key से", "Mouse की राइट क्लिक से"], c: 1 },
+        { q: "रिफ्रेश रेट (Refresh Rate) क्या है?", a: ["RAM की स्पीड", "स्क्रीन प्रति सेकंड कितनी बार अपडेट होती है", "फाइल डिलीट करना", "कंप्यूटर को धोना"], c: 1 },
+        { q: "ज़्यादा रिफ्रेश रेट किनके लिए ज़रूरी है?", a: ["केवल पढ़ने के लिए", "Gaming और Video Editing के लिए", "टाइपिंग के लिए", "कैलकुलेटर के लिए"], c: 1 },
+        { q: "कलर एक्यूरेसी (Color Accuracy) किनके लिए महत्वपूर्ण है?", a: ["Graphic Designers के लिए", "बैंक मैनेजर्स के लिए", "छात्रों के लिए", "पुलिस के लिए"], c: 0 },
+        { q: "डेस्कटॉप पर खाली जगह पर राइट क्लिक करने से कौन सा मेनू खुलता है?", a: ["Start Menu", "Context Menu", "Task Manager", "Control Panel"], c: 1 },
+        { q: "डिस्प्ले सेटिंग्स तक पहुँचने के लिए Windows 10/11 में सही रास्ता क्या है?", a: ["System -> Apps", "System -> Display", "Privacy -> Camera", "Network -> Wi-Fi"], c: 1 },
+        { q: "Windows 11 में टास्कबार की डिफ़ॉल्ट स्थिति कहाँ होती है?", a: ["Top", "Left", "Center/Bottom", "Right"], c: 2 },
+        { q: "थीम के अंतर्गत किन चीजों को बदला जा सकता है?", a: ["Wallpaper, Sounds, Colors", "RAM, CPU, HDD", "इंटरनेट, ब्राउज़र", "केवल फोटो"], c: 0 },
+        { q: "स्क्रीन के कंट्रास्ट को बेहतर बनाने के लिए ऑफिस वर्कर को क्या करना चाहिए?", a: ["कंप्यूटर बंद करें", "सही स्केलिंग और सौम्य रंग चुनें", "ब्राइटनेस 100% करें", "रिफ्रेश रेट कम करें"], c: 1 },
+        { q: "स्केलिंग (Scaling) का प्रतिशत आमतौर पर कितना रखा जा सकता है?", a: ["500%", "125% या 150%", "10%", "0%"], c: 1 }
+    ];
+
+    let curr = 0, name = "", answers = new Array(questions.length).fill(null), visited = new Array(questions.length).fill(false);
+    let timeLeft = 900, startTime = null, quizDate = new Date().toISOString().split('T')[0];
+
+    function start() {
+        name = document.getElementById('s-name').value;
+        if(!name) return alert("नाम लिखें!");
+        startTime = Date.now();
+        document.getElementById('intro').style.display = 'none';
+        document.getElementById('quiz').style.display = 'block';
+        showQ();
+        setInterval(() => {
+            if(timeLeft <= 0) return;
+            timeLeft--;
+            let m = Math.floor(timeLeft/60), s = timeLeft%60;
+            document.getElementById('timer').innerText = `⏱ ${m}:${s<10?'0':''}${s}`;
+            if(timeLeft === 0) finish(true);
+        }, 1000);
+    }
+
+    function showQ() {
+        visited[curr] = true; // सवाल देख लिया गया
+        const q = questions[curr];
+        document.getElementById('q-text').innerText = `${curr+1}. ${q.q}`;
+        document.getElementById('q-count').innerText = `सवाल ${curr+1}/${questions.length}`;
+        const div = document.getElementById('options-div');
+        div.innerHTML = '';
+        q.a.forEach((o, i) => {
+            const optDiv = document.createElement('div');
+            optDiv.className = `option ${answers[curr] === i ? 'selected' : ''}`;
+            optDiv.innerText = o;
+            optDiv.onclick = () => { answers[curr] = i; showQ(); };
+            div.appendChild(optDiv);
+        });
+        updatePalette();
+    }
+
+    function next() { if(curr < questions.length - 1) { curr++; showQ(); } }
+    function prev() { if(curr > 0) { curr--; showQ(); } }
+
+    function updatePalette() {
+        const p = document.getElementById('palette');
+        p.innerHTML = "";
+        questions.forEach((_, i) => {
+            let statusClass = "";
+            if(answers[i] !== null) statusClass = "done"; // Answered (Green)
+            else if(visited[i]) statusClass = "skipped"; // Visited but skipped (Red)
+            
+            p.innerHTML += `<button class="p-btn ${statusClass} ${i===curr?'active':''}" onclick="curr=${i};showQ()">${i+1}</button>`;
+        });
+    }
+
+    function finish(auto = false) {
+        if(!auto && !confirm("क्या आप टेस्ट सबमिट करना चाहते हैं?")) return;
+        let score = 0;
+        answers.forEach((ans, i) => { if(ans === questions[i].c) score++; });
+        
+        const durationMs = Date.now() - startTime;
+        const mins = Math.floor(durationMs / 60000), secs = Math.floor((durationMs % 60000) / 1000);
+        
+        db.ref(`quizzes/${quizDate}/${name}`).set({ name, score, timestamp: Date.now(), startTime: startTime });
+        
+        document.getElementById('quiz').style.display = 'none';
+        document.getElementById('result-box').style.display = 'block';
+        document.getElementById('score-display').innerText = `स्कोर: ${score} / ${questions.length}`;
+        document.getElementById('time-taken-display').innerText = `समय लगा: ${mins} मि ${secs} से`;
+    }
+
+    function showAnswers() {
+        const keyBox = document.getElementById('answer-key');
+        keyBox.innerHTML = "<h3>Answer Key:</h3>";
+        questions.forEach((q, i) => {
+            const isCorrect = answers[i] === q.c;
+            keyBox.innerHTML += `<div class="ans-item"><b>Q${i+1}: ${q.q}</b><br>जवाब: <span class="${isCorrect?'correct':'wrong'}">${answers[i]!==null?q.a[answers[i]]:'N/A'}</span> | सही: <span class="correct">${q.a[q.c]}</span></div>`;
+        });
+        keyBox.style.display = 'block';
+    }
+</script>
+</body>
+</html>
